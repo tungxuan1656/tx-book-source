@@ -13,6 +13,7 @@ const sources = [
   { file: 'tien-phu-1.zip', name: 'Tiên Phụ' },
   { file: 'trach-nhat-phi-thang.zip', name: 'Trạch Nhật Phi Thăng' },
   { file: 'van-gioi-chi-rut-thuong-he-thong.zip', name: 'Vạn Giới Chi Rút Thưởng Hệ Thống' },
+  { file: 'nhan-to.zip', name: 'Nhân Tổ' },
 ]
 
 function App() {
