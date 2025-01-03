@@ -14,6 +14,7 @@ const sources = [
   { file: 'trach-nhat-phi-thang.zip', name: 'Trạch Nhật Phi Thăng' },
   { file: 'van-gioi-chi-rut-thuong-he-thong.zip', name: 'Vạn Giới Chi Rút Thưởng Hệ Thống' },
   { file: 'nhan-to.zip', name: 'Nhân Tổ' },
+  { file: 'dai-dao-trieu-thien.zip', name: 'Đại Đạo Triều Thiên' },
 ]
 
 function App() {
