@@ -15,6 +15,7 @@ const sources = [
   { file: 'van-gioi-chi-rut-thuong-he-thong.zip', name: 'Vạn Giới Chi Rút Thưởng Hệ Thống' },
   { file: 'nhan-to.zip', name: 'Nhân Tổ' },
   { file: 'dai-dao-trieu-thien.zip', name: 'Đại Đạo Triều Thiên' },
+  { file: 'ta-an-the-tong-mon-chuong-giao.zip', name: 'Ta Là Chưởng Giáo Ẩn Thế Tông Môn' },
 ]
 
 function App() {
