@@ -16,6 +16,10 @@ const sources = [
   { file: 'nhan-to.zip', name: 'Nhân Tổ' },
   { file: 'dai-dao-trieu-thien.zip', name: 'Đại Đạo Triều Thiên' },
   { file: 'ta-an-the-tong-mon-chuong-giao.zip', name: 'Ta Là Chưởng Giáo Ẩn Thế Tông Môn' },
+  { file: 'ta-co-the-nhin-thay-hp.zip', name: 'Ta Có Thể Nhìn Thấy Hp' },
+  { file: 'ta-da-tai-luyen-ai-tro-choi.zip', name: 'Bạn Gái Của Ta Là Ác Liệt Đại Tiểu Thư' },
+  { file: 'ta-that-khong-muon-trong-sinh-a.zip', name: 'Ta Thật Không Muốn Trọng Sinh A' },
+  { file: 'thua-lo-thanh-thu-phu-tu-tro-choi.zip', name: 'Thua Lỗ Thành Thủ Phủ Từ Trò Chơi' },
 ]
 
 function App() {
