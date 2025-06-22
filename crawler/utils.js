@@ -1,108 +1,73 @@
-import axios from 'axios'
 import cheerio from 'cheerio'
 import fs from 'fs'
 import puppeteer from 'puppeteer'
-import { BASE_URL, BOOK_INFO, OUTPUT_FOLDER } from './main'
-import { COOKIES, REQUEST_CONFIG } from './auth'
+import { COOKIES, REQUEST_CONFIG } from './auth.js'
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-const crawl_link = async (output, link, name) => {
-  try {
-    let pageHTML = await axios.request({ url: link })
-    let $ = cheerio.load(pageHTML.data)
-    $('canvas').remove()
-    let chapterContent = $('div[data-x-bind=ChapterContent]').html()
-    let chapterLoadmore = $('div#load-more').html()
+const crawl_content_1tab = async (browser, link) => {
+  const page = await browser.newPage()
+  for (let i = 0; i < COOKIES.length; i++) await page.setCookie(COOKIES[i])
+  await page.setExtraHTTPHeaders({ ...REQUEST_CONFIG.headers })
+  await page.goto(link)
 
-    let count = 0
+  const data1 = await page.evaluate(() => document.querySelector('*').outerHTML)
+  page.close()
 
-    while (chapterContent.length < 1000 && count < 5) {
-      count += 1
-      console.log('Re-crawl:', link)
-      pageHTML = await axios.request({ ...REQUEST_CONFIG, url: link })
-      $ = cheerio.load(pageHTML.data)
-      $('canvas').remove()
-      chapterContent = $('div[data-x-bind=ChapterContent]').html()
-      chapterLoadmore = $('div#load-more').html()
-      await sleep(100)
-    }
-
-    const chapterTitle = $('main[data-x-bind=ChapterAuto] div div h2.text-center').html()
-    const chapterFull = `<div><h2>${chapterTitle}</h2><div>${chapterContent}${chapterLoadmore}</div></div>`
-
-    fs.writeFileSync(output + '/chapters' + `/${name}.html`, chapterFull)
-
-    return chapterTitle ?? 'Chapter lỗi'
-  } catch (error) {
-    return 'Chapter lỗi'
+  let $ = cheerio.load(data1)
+  const content = $('#chapter-content').html()
+  const title = $('main[data-x-bind=ChapterAuto] div div h2.text-center').html()
+  const output = content.split('<br>').filter((t) => t.trim() !== '')
+  if (output.length < 2) {
+    console.log('>=== Content too short, retrying...', content.slice(0, 100))
+    return crawl_content_1tab(browser, link)
   }
+
+  return [output, title]
 }
 
-const crawl_li = async (output, link, name) => {
-  console.log('crawl', link)
+const crawl_puppeteer = async (browser, output, link, name) => {
+  try {
+    const [[arr1, title], [arr2], [arr3], [arr4], [arr5]] = await Promise.all([
+      crawl_content_1tab(browser, link),
+      crawl_content_1tab(browser, link),
+      crawl_content_1tab(browser, link),
+      crawl_content_1tab(browser, link),
+      crawl_content_1tab(browser, link),
+    ])
 
-  const RETRY = 5
-
-  let chapterContent = ''
-  let chapterLoadmore = '#'
-  let chapterTitle = ''
-  let chapterFull = ''
-  let count = 0
-
-  while (chapterLoadmore.length > 0 && count < RETRY) {
-    const browser = await puppeteer.launch({
-      devtools: false,
-      args: ['--disable-web-security'],
-    })
-    const page = await browser.newPage()
-    for (let i = 0; i < COOKIES.length; i++) {
-      await page.setCookie(COOKIES[i])
+    const length = Math.max(arr1.length, arr2.length, arr3.length, arr4.length, arr5.length)
+    const newArr = []
+    for (let i = 0; i < length; i++) {
+      const text = [arr1[i], arr2[i], arr3[i], arr4[i], arr5[i]].find(
+        (t) => t && t.length > 0 && !t.startsWith('<canvas'),
+      )
+      if (!text) console.log(arr1[i], arr2[i], arr3[i], arr4[i], arr5[i])
+      newArr.push(text ?? arr1[i])
     }
-    await page.setExtraHTTPHeaders({
-      ...REQUEST_CONFIG.headers,
-    })
-    await page.goto(link)
-    await page.setViewport({ width: 720, height: 720 })
-    await page.evaluate(async () => {
-      await new Promise(function (resolve) {
-        setTimeout(resolve, 2000)
-      })
-    })
-    const data = await page.evaluate(() => document.querySelector('*').outerHTML)
+    const chapterContent = newArr.join('<br><br>').replace(/<div[^>]*><\/div>/gi, '')
+    const chapterFull = `<div><h2>${title}</h2><div>${chapterContent}</div></div>`
 
-    let $ = cheerio.load(data)
-    chapterContent = $('div[data-x-bind=ChapterContent]').html()
-    chapterLoadmore = $('div#load-more').html()
-    chapterTitle = $('main[data-x-bind=ChapterAuto] div div h2.text-center').html()
-    chapterFull = `<div><h2>${chapterTitle}</h2><div>${chapterContent}${chapterLoadmore}</div></div>`
+    if (chapterContent.includes('<canvas')) return crawl_puppeteer(browser, output, link, name)
 
-    if (chapterLoadmore.length > 0) {
-      console.log('Has load more !!!! => Re-crawl', name)
-    }
-    count += 1
-    if (count === RETRY) {
-      // let imgCapture = await page.screenshot({ encoding: 'base64', fullPage: true })
-      // chapterFull = `<img src="data:image/png;base64, ${imgCapture}" />`
-      chapterFull = `<a href="${link}">Link</a>`
-    }
-
-    await browser.close()
-    await sleep(1000)
+    fs.writeFileSync(output + '/chapters' + `/${name}.html`, chapterFull)
+    return title ?? 'Chương lỗi nội dung'
+  } catch (error) {
+    console.log('Error crawling link:', link, error.message)
+    fs.writeFileSync(output + '/chapters' + `/${name}.html`, '`<div><h2>Chương lỗi nội dung</h2></div>`')
+    return 'Chương lỗi nội dung'
   }
-
-  fs.writeFileSync(output + '/chapters' + `/${name}.html`, chapterFull)
 }
 
 const create_book_folder = () => {
   try {
-    if (!fs.existsSync(OUTPUT_FOLDER)) {
-      fs.mkdirSync(OUTPUT_FOLDER)
+    if (!fs.existsSync(global.OUTPUT_FOLDER)) {
+      fs.mkdirSync(global.OUTPUT_FOLDER)
     }
-    if (!fs.existsSync(OUTPUT_FOLDER + '/chapters')) {
-      fs.mkdirSync(OUTPUT_FOLDER + '/chapters')
+    if (!fs.existsSync(global.OUTPUT_FOLDER + '/chapters')) {
+      fs.mkdirSync(global.OUTPUT_FOLDER + '/chapters')
     }
   } catch (err) {
     console.error(err)
@@ -111,51 +76,36 @@ const create_book_folder = () => {
 
 const crawl = async () => {
   create_book_folder()
-  const chapter_length = BOOK_INFO.end
+  const chapter_length = global.BOOK_INFO.end
   const references = []
-  for (let index = BOOK_INFO.start; index <= chapter_length; index++) {
-    console.log(`crawl: `, index)
-    const chapter_name = await crawl_link(OUTPUT_FOLDER, `${BASE_URL}${index}`, `chapter-${index}`)
+  const t1 = new Date().getTime()
+  const browser = await puppeteer.launch({ devtools: false, args: ['--disable-web-security'] })
+  for (let index = global.BOOK_INFO.start; index <= chapter_length; index++) {
+    console.log(`(${index}/${chapter_length})`, `${global.BASE_URL}${index}`)
+    const chapter_name = await crawl_puppeteer(browser, global.OUTPUT_FOLDER, `${global.BASE_URL}${index}`, `chapter-${index}`)
 
     if (chapter_name === '') {
       console.log('ERROR!!!')
       return
     }
 
-    references.push(chapter_name)
-    console.log('name:', chapter_name)
+    references.push(chapter_name.trim())
+    console.log('=====>', chapter_name.trim())
     await sleep(100)
   }
+  await browser.close()
+  const t2 = new Date().getTime()
+  console.log(`Crawl completed in ${(t2 - t1) / 1000} seconds`)
 
   const book = {
-    name: BOOK_INFO.name,
-    count: BOOK_INFO.count,
-    author: BOOK_INFO.author,
+    name: global.BOOK_INFO.name,
+    count: global.BOOK_INFO.count,
+    author: global.BOOK_INFO.author,
     references,
-    id: BOOK_INFO.id,
+    id: global.BOOK_INFO.id,
   }
 
-  fs.writeFileSync(OUTPUT_FOLDER + '/book.json', JSON.stringify(book))
+  fs.writeFileSync(global.OUTPUT_FOLDER + '/book.json', JSON.stringify(book))
 }
 
-const re_check_crawler = () => {
-  fs.readdir(OUTPUT_FOLDER + '/chapters', async (err, files) => {
-    files.forEach((file) => {
-      fs.readFile(OUTPUT_FOLDER + '/chapters/' + file, 'utf8', (err, data) => {
-        if (data.length < 1000) console.log(file)
-      })
-    })
-
-    for (let indexFile = 0; indexFile < files.length; indexFile++) {
-      const file = files[indexFile]
-      const data = await fs.promises.readFile(OUTPUT_FOLDER + '/chapters/' + file, 'utf8')
-      if (data.length < 1000) {
-        const index = file.split('.')[0].split('-')[1]
-        await crawl_li(OUTPUT_FOLDER, `${BASE_URL}${index}`, `chapter-${index}`)
-        console.log('puppeteer-crawl:', file)
-      }
-    }
-  })
-}
-
-export { crawl, re_check_crawler, crawl_li, sleep }
+export { crawl, crawl_puppeteer, sleep }
