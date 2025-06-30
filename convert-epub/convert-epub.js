@@ -3,6 +3,42 @@ import path from 'path'
 import { JSDOM } from 'jsdom'
 
 /**
+ * Làm sạch nội dung HTML, loại bỏ các thẻ không cần thiết
+ * @param {string} htmlContent - Nội dung HTML gốc
+ * @returns {string} - Nội dung HTML đã được làm sạch
+ */
+function cleanHtmlContent(htmlContent) {
+  try {
+    const dom = new JSDOM(htmlContent)
+    const document = dom.window.document
+    
+    // Lấy nội dung từ thẻ body
+    const body = document.querySelector('body')
+    if (!body) {
+      return htmlContent
+    }
+    
+    // Xóa thẻ img
+    const images = body.querySelectorAll('img')
+    images.forEach(img => img.remove())
+    
+    // Lấy nội dung bên trong body
+    let cleanedContent = body.innerHTML
+    
+    // Loại bỏ các dòng trống và khoảng trắng thừa
+    cleanedContent = cleanedContent
+      .replace(/^\s*\n/gm, '') // Loại bỏ dòng trống
+      .replace(/\n\s*\n/g, '\n') // Loại bỏ nhiều dòng trống liên tiếp
+      .trim()
+    
+    return cleanedContent
+  } catch (error) {
+    console.error('Lỗi khi làm sạch HTML:', error.message)
+    return htmlContent
+  }
+}
+
+/**
  * Xử lý thư mục sách EPUB đã được giải nén
  * @param {string} epubDir - Đường dẫn tới thư mục EPUB đã giải nén
  * @param {string} outputDir - Đường dẫn tới thư mục output
@@ -65,10 +101,17 @@ function processEpubDirectory(epubDir, outputDir, bookId, bookName, author = '')
 
       if (fs.existsSync(originalPath)) {
         try {
-          fs.copyFileSync(originalPath, newPath)
-          console.log(`Copy và đổi tên: ${chapter.originalFile} -> ${chapter.newFile}`)
+          // Đọc nội dung file gốc
+          const originalContent = fs.readFileSync(originalPath, 'utf-8')
+          
+          // Làm sạch HTML
+          const cleanedContent = cleanHtmlContent(originalContent)
+          
+          // Ghi file đã làm sạch vào thư mục chapters
+          fs.writeFileSync(newPath, cleanedContent, 'utf-8')
+          console.log(`Copy và làm sạch: ${chapter.originalFile} -> ${chapter.newFile}`)
         } catch (error) {
-          console.error(`Lỗi khi copy file ${chapter.originalFile}:`, error.message)
+          console.error(`Lỗi khi xử lý file ${chapter.originalFile}:`, error.message)
         }
       } else {
         console.warn(`File không tồn tại: ${chapter.originalFile}`)
