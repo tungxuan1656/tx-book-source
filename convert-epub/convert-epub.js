@@ -88,7 +88,7 @@ function processEpubDirectory(epubDir, outputDir, bookId, bookName, author = '')
     }
 
     // Lưu file JSON thông tin sách
-    const bookInfoPath = path.join(outputDir, 'books.json')
+    const bookInfoPath = path.join(outputDir, 'book.json')
     fs.writeFileSync(bookInfoPath, JSON.stringify(bookInfo, null, 2), 'utf-8')
 
     console.log(`Đã tạo file thông tin sách: ${bookInfoPath}`)
