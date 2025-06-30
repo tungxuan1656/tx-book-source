@@ -67,5 +67,16 @@
     "file": "thua-lo-thanh-thu-phu-tu-tro-choi.zip",
     "name": "Thua Lỗ Thành Thủ Phủ Từ Trò Chơi"
   },
-  { "file": "cau-ma-2.zip", "name": "Cầu ma" }
+  {
+    "file": "cau-ma-2.zip",
+    "name": "Cầu ma"
+  },
+  {
+    "file": "de-nhat-danh-sach.zip",
+    "name": "Đệ Nhất Danh Sách"
+  },
+  {
+    "file": "thien-su-ta-co-mot-the-gioi-khac.zip",
+    "name": "Thiên Sư Ta Có Một Thế Giới Khác"
+  }
 ]
