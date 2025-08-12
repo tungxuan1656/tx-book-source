@@ -5,7 +5,7 @@
 const COOKIES = [
     {
         domain: 'metruyencv.com',
-        expirationDate: 1753116159,
+        expirationDate: 1757564394,
         hostOnly: true,
         httpOnly: false,
         name: 'accessToken',
@@ -14,7 +14,7 @@ const COOKIES = [
         secure: false,
         session: false,
         storeId: '0',
-        value: '4719889|OmTHvrRVGfoOsMyfSp9P3PjoVRThROxiklPxp5eC',
+        value: '5275159|0tWE8PzreI9GmIhCpnELdUzIOsLKgZwkYQlApKod',
     },
 ]
 
